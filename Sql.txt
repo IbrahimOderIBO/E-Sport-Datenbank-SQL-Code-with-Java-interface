@@ -1,11 +1,9 @@
-##############################################
-#####        E-Sport Datenbank           #####
-#####     KOMPLETTE DATENBANKDATEI       #####
-##############################################
 
-# ============================================
+#        E-Sport Datenbank           
+#   KOMPLETTE DATENBANKDATEI     
+
 # 1. DATENBANK ERSTELLEN (CREATE)
-# ============================================
+
 
 CREATE DATABASE IF NOT EXISTS esports;
 USE esports;
@@ -118,9 +116,9 @@ CREATE TABLE matches (
 );
 
 
-# ============================================
+
 # 2. TRIGGER ERSTELLEN
-# ============================================
+
 
 DROP TRIGGER IF EXISTS check_team_size;
 
@@ -146,9 +144,9 @@ END;
 DELIMITER ;
 
 
-# ============================================
+
 # 3. VIEW ERSTELLEN
-# ============================================
+
 
 CREATE OR REPLACE VIEW view_team_size AS
 SELECT
@@ -161,9 +159,9 @@ JOIN games g ON pt.Game_id = g.Game_id
 GROUP BY pt.Team_id, pt.Game_id;
 
 
-# ============================================
+
 # 4. USER ERSTELLEN
-# ============================================
+
 
 CREATE USER IF NOT EXISTS 'esports_user'@'localhost' IDENTIFIED BY 'MeinPasswort67';
 ALTER USER 'esports_user'@'localhost' IDENTIFIED BY 'MeinPasswort67';
@@ -177,9 +175,8 @@ GRANT ALL PRIVILEGES ON esports.* TO 'esports_user'@'localhost';
 FLUSH PRIVILEGES;
 
 
-# ============================================
 # 5. DATEN EINFÜGEN (INSERT)
-# ============================================
+
 
 # Games Insert
 INSERT INTO games (G_Titel, Genre, Kurzbeschreibung) VALUES
@@ -451,9 +448,9 @@ INSERT INTO matches (Dauer_in_minuten, Tournaments_id, Score_Team1, Score_Team2,
 (50, 6, 3, 0, 11, 12, 11, 3);
 
 
-# ============================================
+
 # 6. DATEN AKTUALISIEREN (UPDATE)
-# ============================================
+
 
 # Spielerrolle ändern: 'Faker' bekommt neue Rolle 'Mid-Laner'
 UPDATE players
@@ -476,9 +473,9 @@ FROM team
 WHERE Game_id = 1 AND T_Name = 'DRX Esports';
 
 
-# ============================================
+
 # 7. DATEN LÖSCHEN (DELETE)
-# ============================================
+
 
 # Spieler 'Justin Shanks' komplett aus players_teames entfernen
 DELETE pt
@@ -508,9 +505,9 @@ WHERE p.Name = 'Hunter' AND p.Vorname = 'Steel' AND p.Game_id = 3
   AND t.T_Name = 'Sentinels';
 
 
-# ============================================
+
 # 8. DATEN ABFRAGEN (SELECT)
-# ============================================
+
 
 # 1. Alle Spieler aus League of Legends sortiert nach Vorname
 SELECT Name, Vorname, Rolle, Land
