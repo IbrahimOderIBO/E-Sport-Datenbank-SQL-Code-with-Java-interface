@@ -1,0 +1,212 @@
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+import java.sql.*;
+
+public class Main extends Application {
+
+    private TextField userField = new TextField("esports_user");
+    private PasswordField passwordField = new PasswordField();
+
+    private TextField gameField = new TextField();
+    private TextField teamField = new TextField();
+
+    private TextField playerNameField = new TextField();
+    private TextField playerFirstNameField = new TextField();
+    private DatePicker birthField = new DatePicker();
+
+    private TextField countryField = new TextField();
+    private TextField roleField = new TextField();
+
+    private TextField searchField = new TextField();
+    private TextArea output = new TextArea();
+
+    private Label status = new Label("Not connected");
+
+    @Override
+    public void start(Stage stage) {
+
+        passwordField.setPromptText("Password");
+        gameField.setPromptText("Game");
+        teamField.setPromptText("Team");
+        searchField.setPromptText("Search...");
+
+        Button saveBtn = new Button("Save");
+        Button searchBtn = new Button("Search");
+
+        saveBtn.setOnAction(e -> saveData());
+        searchBtn.setOnAction(e -> searchData());
+
+        output.setPrefHeight(200);
+        output.setEditable(false);
+
+        VBox root = new VBox(10,
+                new Label("User"), userField,
+                new Label("Password"), passwordField,
+
+                new Label("Game"), gameField,
+                new Label("Team"), teamField,
+
+                new Label("Player Name"), playerNameField,
+                new Label("Player First Name"), playerFirstNameField,
+                new Label("Birth Date"), birthField,
+                new Label("Country"), countryField,
+                new Label("Role"), roleField,
+
+                saveBtn,
+
+                new Label("Search"),
+                searchField,
+                searchBtn,
+
+                output,
+                status
+        );
+
+        root.setPadding(new Insets(15));
+
+        stage.setTitle("Esports App");
+        stage.setScene(new Scene(root, 450, 750));
+        stage.show();
+    }
+
+    private Connection connect() throws Exception {
+        String url = "jdbc:mysql://localhost:3306/esports";
+        return DriverManager.getConnection(url, userField.getText(), passwordField.getText());
+    }
+
+    private void saveData() {
+        if (gameField.getText().isBlank() || teamField.getText().isBlank()) {
+            status.setText("Fill required fields");
+            return;
+        }
+
+        try (Connection con = connect()) {
+
+            int gameId = insertGame(con);
+            int teamId = insertTeam(con, gameId);
+            int playerId = insertPlayer(con, gameId);
+
+            linkPlayerTeam(con, playerId, teamId, gameId);
+
+            status.setText("Saved successfully");
+
+            gameField.clear();
+            teamField.clear();
+            playerNameField.clear();
+            playerFirstNameField.clear();
+            countryField.clear();
+            roleField.clear();
+
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
+    }
+
+    private int insertGame(Connection con) throws Exception {
+        String sql = "INSERT INTO games (G_Titel, Genre) VALUES (?, ?)";
+
+        PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        ps.setString(1, gameField.getText());
+        ps.setString(2, "unknown");
+        ps.executeUpdate();
+
+        ResultSet rs = ps.getGeneratedKeys();
+        rs.next();
+        return rs.getInt(1);
+    }
+
+    private int insertTeam(Connection con, int gameId) throws Exception {
+        String sql = "INSERT INTO team (T_Name, Game_id) VALUES (?, ?)";
+
+        PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        ps.setString(1, teamField.getText());
+        ps.setInt(2, gameId);
+        ps.executeUpdate();
+
+        ResultSet rs = ps.getGeneratedKeys();
+        rs.next();
+        return rs.getInt(1);
+    }
+
+    private int insertPlayer(Connection con, int gameId) throws Exception {
+        String sql = "INSERT INTO players (Name, Vorname, GebDatum, Land, Rolle, Game_id) VALUES (?, ?, ?, ?, ?, ?)";
+
+        PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        ps.setString(1, playerNameField.getText());
+        ps.setString(2, playerFirstNameField.getText());
+        ps.setDate(3, Date.valueOf(birthField.getValue()));
+        ps.setString(4, countryField.getText());
+        ps.setString(5, roleField.getText());
+        ps.setInt(6, gameId);
+        ps.executeUpdate();
+
+        ResultSet rs = ps.getGeneratedKeys();
+        rs.next();
+        return rs.getInt(1);
+    }
+
+    private void linkPlayerTeam(Connection con, int playerId, int teamId, int gameId) throws Exception {
+        String sql = "INSERT INTO players_teames (Player_id, Team_id, Game_id) VALUES (?, ?, ?)";
+
+        PreparedStatement ps = con.prepareStatement(sql);
+        ps.setInt(1, playerId);
+        ps.setInt(2, teamId);
+        ps.setInt(3, gameId);
+        ps.executeUpdate();
+    }
+
+    private void searchData() {
+        String word = "%" + searchField.getText() + "%";
+
+        try (Connection con = connect()) {
+
+            String sql =
+                    "SELECT g.G_Titel, t.T_Name, p.Vorname, p.Name, p.Land, p.Rolle " +
+                            "FROM players p " +
+                            "JOIN players_teames pt ON pt.Player_id = p.Player_id " +
+                            "JOIN team t ON t.Team_id = pt.Team_id " +
+                            "JOIN games g ON g.Game_id = pt.Game_id " +
+                            "WHERE g.G_Titel LIKE ? OR t.T_Name LIKE ? OR p.Name LIKE ? OR p.Vorname LIKE ?";
+
+            PreparedStatement ps = con.prepareStatement(sql);
+
+            for (int i = 1; i <= 4; i++) {
+                ps.setString(i, word);
+            }
+
+            ResultSet rs = ps.executeQuery();
+
+            output.clear();
+
+            while (rs.next()) {
+                output.appendText(
+                        "Game: " + rs.getString(1) + "\n" +
+                                "Team: " + rs.getString(2) + "\n" +
+                                "Player: " + rs.getString(3) + " " + rs.getString(4) + "\n\n"
+                );
+            }
+
+            if (output.getText().isBlank()) {
+                output.setText("No results");
+            }
+
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
+    }
+
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setContentText(msg);
+        alert.showAndWait();
+    }
+
+    public static void main(String[] args) {
+        launch();
+    }
+}
