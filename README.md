@@ -1,1 +1,1 @@
-# E-Sport-Datenbank-SQL-Code
+Sie müssen XAMPP SQL Server verwenden
