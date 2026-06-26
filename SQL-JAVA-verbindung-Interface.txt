@@ -8,6 +8,7 @@ import javafx.stage.Stage;
 import java.sql.*;
 
 public class Main extends Application {
+    public static void main(String[] args) {
 
     private TextField userField = new TextField("esports_user");
     private PasswordField passwordField = new PasswordField();
@@ -209,4 +210,5 @@ public class Main extends Application {
     public static void main(String[] args) {
         launch();
     }
+}
 }
